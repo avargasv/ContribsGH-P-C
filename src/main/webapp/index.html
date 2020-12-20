@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta content="text/html; charset=UTF-8" http-equiv="content-type"/>
+    <title>Home</title>
+</head>
+<body class="lift:content_id=main">
+    <div id="main" class="lift:surround?with=default;at=content">
+
+        <div id="params-data">
+            <h2>Parameters</h2>
+            Grouping level:
+            <select name="group-level" id="group-level">
+                <option value="organization">Organization</option>
+                <option value="repo">Repository</option>
+            </select>
+            <br/>
+            Minimum contributions: <input type="text" name="min-contribs" id="min-contribs" value="0">
+        </div>
+
+        <br/>
+
+        <div id="organization-data">
+            <h2>Organization</h2>
+            Organization name: <input type="text" name="organization" value="" onchange="displayContributors(this.value)">
+        </div>
+
+        <br/>
+
+        <div id="contributor-data">
+            <h2>Contributors</h2>
+            <table>
+                <thead>
+                <tr>
+                    <th>Repository</th>
+                    <th>Contributor</th>
+                    <th>Contributions</th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+
+        <script>
+            function displayContributors(organization) {
+                if (organization.length == 0) {
+                    organization = "___";
+                }
+                var params = "?group-level=" + $("#group-level").val() + "&min-contribs=" + $("#min-contribs").val()
+                $.ajax({
+                    url: "/org/" + organization + "/contributors" + params,
+                    contentType: "application/json"
+                }).done(function (data) {
+                    var contributors = "";
+
+                    $.each(data, function(i, contributor) {
+                        contributors +=
+                                '<tr>' +
+                                '   <td><input type="text" value="' + contributor.repo + '"></td>' +
+                                '   <td><input type="text" value="' + contributor.contributor + '"></td>' +
+                                '   <td><input type="text" value="' + contributor.contributions + '"></td>' +
+                                '</tr>';
+                    });
+
+                    $("tbody").html(contributors);
+                });
+            };
+        </script>
+
+    </div>
+</body>
+</html>
+
