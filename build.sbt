@@ -1,4 +1,4 @@
-name := "ContribsGH-P"
+name := "ContribsGH-P-C"
 
 version := "0.1"
 
@@ -31,7 +31,5 @@ libraryDependencies ++= {
     "io.spray"                %% "spray-client"           % "1.3.3"               % "compile",
     "com.github.kstyrc"       %  "embedded-redis"         % "0.6"                 % "compile",
     "redis.clients"           % "jedis"                   % "3.2.0"               % "compile"
-    //"net.debasishg"           %% "redisclient"            % "3.30"                % "compile"
-    //"org.redis"               %% "scala-redis"            % "0.0.25"              % "compile"
   )
 }

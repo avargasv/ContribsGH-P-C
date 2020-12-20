@@ -35,7 +35,7 @@ object RestServer extends RestHelper {
   def contributorsByOrganization(organization: Organization, groupLevel: String, minContribs: Int): List[Contributor] = {
     val sdf = new java.text.SimpleDateFormat("dd-MM-yyyy hh:mm:ss")
     val initialInstant = Instant.now
-    logger.info(s"Starting ContribsGH-P REST API call at ${sdf.format(Date.from(initialInstant))} - organization='$organization'")
+    logger.info(s"Starting ContribsGH-P-C REST API call at ${sdf.format(Date.from(initialInstant))} - organization='$organization'")
 
     val repos = reposByOrganization(organization)
 
@@ -67,7 +67,7 @@ object RestServer extends RestHelper {
       }
 
     val finalInstant = Instant.now
-    logger.info(s"Finished ContribsGH-P REST API call at ${sdf.format(Date.from(finalInstant))} - organization='$organization'")
+    logger.info(s"Finished ContribsGH-P-C REST API call at ${sdf.format(Date.from(finalInstant))} - organization='$organization'")
     logger.info(f"Time elapsed from start to finish: ${Duration.between(initialInstant, finalInstant).toMillis/1000.0}%3.2f seconds")
 
     contributorsGrouped
@@ -76,6 +76,7 @@ object RestServer extends RestHelper {
 }
 
 object RestServerAux {
+
   import redis.embedded.RedisServer
   import redis.clients.jedis.Jedis
   import collection.JavaConverters._
@@ -91,52 +92,11 @@ object RestServerAux {
   val redisClient = new Jedis()
   // TODO stop Redis server and client at Jetty shutdown time
 
-  def contributorsDetailedFuture(organization: Organization, repos: List[Repository]): List[Contributor] = {
-    val contributorsDetailed_L_F: List[Future[List[Contributor]]] = repos.map { repo =>
-      Future { contributorsByRepo(organization, repo) }
-    }
-    val contributorsDetailed_F_L: Future[List[List[Contributor]]] = Future.sequence(contributorsDetailed_L_F)
-    val contributorsDetailed: List[Contributor] = Await.result(contributorsDetailed_F_L, timeout).flatten
-    contributorsDetailed
-  }
-
   def contributorsDetailedFutureWithCache(organization: Organization, repos: List[Repository]): List[Contributor] = {
-
-    def contribToString(c: Contributor) = c.contributor.trim + ":" + c.contributions
-    def stringToContrib(r: Repository, s: String) = {
-      val v = s.split(":").toVector
-      Contributor(r.name, v(0).trim, v(1).trim.toInt)
-    }
-    def buildRepoK(r: Repository) = organization.trim + "-" + r.name
-    def saveContributorsToCache(repo: Repository, contributors: List[Contributor]) = {
-      val repoK = buildRepoK(repo)
-      redisClient.del(repoK)
-      logger.info(s"repo '$repoK' stored in cache")
-      contributors.foreach { c: Contributor =>
-        redisClient.lpush(repoK, contribToString(c))
-      }
-      redisClient.lpush(repoK, s"updatedAt:${repo.updatedAt.toString}")
-    }
-    def repoUpdatedInCache(repo: Repository): Boolean = {
-      val repoK = buildRepoK(repo)
-      redisClient.lrange(repoK, 0, 0).asScala.toList match {
-        case s :: _ =>
-          val cachedUpdatedAt = Instant.parse(s.substring(s.indexOf(":") + 1))
-          cachedUpdatedAt.compareTo(repo.updatedAt) >= 0
-        case _ => false
-      }
-    }
-    def retrieveContributorsFromCache(repo: Repository) = {
-      val repoK = buildRepoK(repo)
-      val res =redisClient.lrange(repoK, 1, redisClient.llen(repoK).toInt - 1).asScala.toList
-      logger.info(s"repo '$repoK' retrieved from cache, # of contributors=${res.length}")
-      res.map(s => stringToContrib(repo, s))
-    }
-
-    val (reposUpdatedInCache, reposNotUpdatedInCache) = repos.partition(repoUpdatedInCache(_))
+    val (reposUpdatedInCache, reposNotUpdatedInCache) = repos.partition(repoUpdatedInCache(organization, _))
     val contributorsDetailed_L_1 =
       reposUpdatedInCache.map { repo =>
-        retrieveContributorsFromCache(repo)
+        retrieveContributorsFromCache(organization, repo)
       }
     val contributorsDetailed_L_F_2: List[Future[List[Contributor]]] =
       reposNotUpdatedInCache.map { repo =>
@@ -152,7 +112,7 @@ object RestServerAux {
         val repoK = organization.trim + "-" + contribs_L.head.repo
         reposNotUpdatedInCache.find(r => (organization.trim + "-" + r.name) == repoK) match {
           case Some(repo) =>
-            saveContributorsToCache(repo, contribs_L)
+            saveContributorsToCache(organization, repo, contribs_L)
           case None =>
             ()
         }
@@ -160,6 +120,42 @@ object RestServerAux {
     }
 
     contributorsDetailed_L.flatten
+  }
+
+  private def contribToString(c: Contributor) = c.contributor.trim + ":" + c.contributions
+
+  private def stringToContrib(r: Repository, s: String) = {
+    val v = s.split(":").toVector
+    Contributor(r.name, v(0).trim, v(1).trim.toInt)
+  }
+
+  private def buildRepoK(o:Organization, r: Repository) = o.trim + "-" + r.name
+
+  private def saveContributorsToCache(org:Organization, repo: Repository, contributors: List[Contributor]) = {
+    val repoK = buildRepoK(org, repo)
+    redisClient.del(repoK)
+    logger.info(s"repo '$repoK' stored in cache")
+    contributors.foreach { c: Contributor =>
+      redisClient.lpush(repoK, contribToString(c))
+    }
+    redisClient.lpush(repoK, s"updatedAt:${repo.updatedAt.toString}")
+  }
+
+  private def repoUpdatedInCache(org:Organization, repo: Repository): Boolean = {
+    val repoK = buildRepoK(org, repo)
+    redisClient.lrange(repoK, 0, 0).asScala.toList match {
+      case s :: _ =>
+        val cachedUpdatedAt = Instant.parse(s.substring(s.indexOf(":") + 1))
+        cachedUpdatedAt.compareTo(repo.updatedAt) >= 0
+      case _ => false
+    }
+  }
+
+  private def retrieveContributorsFromCache(org:Organization, repo: Repository) = {
+    val repoK = buildRepoK(org, repo)
+    val res =redisClient.lrange(repoK, 1, redisClient.llen(repoK).toInt - 1).asScala.toList
+    logger.info(s"repo '$repoK' retrieved from cache, # of contributors=${res.length}")
+    res.map(s => stringToContrib(repo, s))
   }
 
 }
