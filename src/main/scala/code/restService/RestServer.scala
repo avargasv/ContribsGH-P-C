@@ -39,7 +39,7 @@ object RestServer extends RestHelper {
 
     val repos = reposByOrganization(organization)
 
-    // parallel retrieval of contributors by repo with cache
+    // parallel retrieval of contributors by repo using Futures with cache
     val contributorsDetailed: List[Contributor] = RestServerAux.contributorsDetailedFutureWithCache(organization, repos)
 
     // grouping, sorting
