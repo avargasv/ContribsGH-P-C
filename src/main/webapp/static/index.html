@@ -3,24 +3,24 @@
   <head><meta content="text/html; charset=UTF-8" http-equiv="content-type" /><title>Home</title></head>
   <body class="lift:content_id=main">
     <div id="main" class="lift:surround?with=default;at=content">
-      <h2>REST API ContribsGH-P</h2>
+      <h2>REST API ContribsGH-P-C</h2>
       A REST service that given the name of a GitHub organization returns a list of contributors
       (by organization or by repo) in JSON format, sorted by the number of contributions
       <br/>
       <br/>
-      Parallel version using Scala futures
+      Parallel version using Scala futures with a cache
       <br/>
       <br/>
       <h2>How to use the service</h2>
       <ol>
         <li>
-          Clone the repository at https://github.com/avargasv/ContribsGH-P
+          Clone the repository at https://github.com/avargasv/ContribsGH-P-C
         </li>
         <li>
           Run sbt under the repository's home directory
         </li>
         <li>
-          After the sbt prompt 'sbt:ContribsGH-P>' appears, execute the following sbt command:
+          After the sbt prompt 'sbt:ContribsGH-P-C>' appears, execute the following sbt command:
         <br/>
           jetty:start
         </li>
@@ -40,7 +40,7 @@
         <li>
           The JSON format of the contributors returned is:
           <br/>
-          { “name”: &lt;contributor_login&gt;, “contributions”: &lt;no_of_contributions&gt; }
+          { “repo”: &lt;repo_name&gt;, “name”: &lt;contributor_login&gt;, “contributions”: &lt;no_of_contributions&gt; }
         </li>
         <li>
           If the environment variable GH_TOKEN is set, the service uses its value for authentication using a request header

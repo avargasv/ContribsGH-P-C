@@ -1,9 +1,9 @@
-  <h2>REST API ContribsGH-P</h2>
+  <h2>REST API ContribsGH-P-C</h2>
       A REST service that given the name of a GitHub organization returns a list of contributors 
       (by organization or by repo) in JSON format, sorted by the number of contributions
       <br/>
       <br/>
-      Parallel version using Scala futures
+      Parallel version using Scala futures and a cache
       <br/>
 
   <h2>How to use the service</h2>
@@ -15,7 +15,7 @@
           Run sbt under the repository's home directory
         </li>
         <li>
-          After the sbt prompt 'sbt:ContribsGH-P ->' appears, execute the following sbt command:
+          After the sbt prompt 'sbt:ContribsGH-P-C ->' appears, execute the following sbt command:
         <br/>
           jetty:start
         </li>
