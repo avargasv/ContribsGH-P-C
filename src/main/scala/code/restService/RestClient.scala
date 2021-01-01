@@ -39,7 +39,7 @@ object RestClient {
   import scala.annotation.tailrec
   import scala.concurrent.{Await, Future}
 
-  def processResponseBody[T](url: String) (processPage: String => List[T]): List[T] = {
+  private def processResponseBody[T](url: String) (processPage: String => List[T]): List[T] = {
 
     @tailrec
     def processResponsePage(processedPages: List[T], pageNumber: Int): List[T] = {
@@ -64,7 +64,7 @@ object RestClient {
 
   val pipeline: HttpRequest => Future[HttpResponse] = sendReceive
 
-  def getResponseBody(url: String): Either[Body, Error] = {
+  private def getResponseBody(url: String): Either[Body, Error] = {
     val request =
       if (gh_token != null) Get(url) ~> addHeader("Authorization", gh_token)
       else Get(url)

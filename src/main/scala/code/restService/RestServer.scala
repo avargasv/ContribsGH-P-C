@@ -27,12 +27,12 @@ object RestServer extends RestHelper {
       listContributors(organization, groupLevel, minContribs)
   })
 
-  def listContributors(organization: String, groupLevel: String, minContribs: Int): LiftResponse = {
+  private def listContributors(organization: String, groupLevel: String, minContribs: Int): LiftResponse = {
     val response: List[Contributor] = contributorsByOrganization(organization, groupLevel, minContribs)
     JsonResponse (response.map(_.asJson))
   }
 
-  def contributorsByOrganization(organization: Organization, groupLevel: String, minContribs: Int): List[Contributor] = {
+  private def contributorsByOrganization(organization: Organization, groupLevel: String, minContribs: Int): List[Contributor] = {
     val sdf = new java.text.SimpleDateFormat("dd-MM-yyyy hh:mm:ss")
     val initialInstant = Instant.now
     logger.info(s"Starting ContribsGH-P-C REST API call at ${sdf.format(Date.from(initialInstant))} - organization='$organization'")
@@ -77,20 +77,10 @@ object RestServer extends RestHelper {
 
 object RestServerAux {
 
-  import redis.embedded.RedisServer
   import redis.clients.jedis.Jedis
   import collection.JavaConverters._
 
-  // start Redis server
-  try {
-    val redisServer = new RedisServer(6379)
-    redisServer.start()
-  } catch {
-    case _: Throwable => ()
-  }
-  // start Redis client
   val redisClient = new Jedis()
-  // TODO stop Redis server and client at Jetty shutdown time
 
   def contributorsDetailedFutureWithCache(organization: Organization, repos: List[Repository]): List[Contributor] = {
     val (reposUpdatedInCache, reposNotUpdatedInCache) = repos.partition(repoUpdatedInCache(organization, _))
@@ -153,7 +143,7 @@ object RestServerAux {
 
   private def retrieveContributorsFromCache(org:Organization, repo: Repository) = {
     val repoK = buildRepoK(org, repo)
-    val res =redisClient.lrange(repoK, 1, redisClient.llen(repoK).toInt - 1).asScala.toList
+    val res = redisClient.lrange(repoK, 1, redisClient.llen(repoK).toInt - 1).asScala.toList
     logger.info(s"repo '$repoK' retrieved from cache, # of contributors=${res.length}")
     res.map(s => stringToContrib(repo, s))
   }

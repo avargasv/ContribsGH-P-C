@@ -12,6 +12,7 @@ import net.liftmodules.JQueryModule
 import net.liftweb.http.ContentSourceRestriction.{Self, UnsafeEval, UnsafeInline}
 import net.liftweb.http.js.jquery._
 
+import redis.embedded.RedisServer
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -63,6 +64,18 @@ class Boot {
         )
       )
     )
+
+    // start Redis server
+    val redisServer = new RedisServer(6379)
+    try {
+      redisServer.start()
+    } catch {
+      // just use it if already started
+      case _: Throwable => ()
+    }
+
+    // stop Redis server
+    LiftRules.unloadHooks.append( () => redisServer.stop() )
 
   }
 }
