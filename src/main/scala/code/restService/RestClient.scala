@@ -39,7 +39,7 @@ object RestClient {
   import scala.annotation.tailrec
   import scala.concurrent.{Await, Future}
 
-  private def processResponseBody[T](url: String) (processPage: String => List[T]): List[T] = {
+  private def processResponseBody[T](url: String) (processPage: Body => List[T]): List[T] = {
 
     @tailrec
     def processResponsePage(processedPages: List[T], pageNumber: Int): List[T] = {
