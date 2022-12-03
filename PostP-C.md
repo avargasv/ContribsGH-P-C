@@ -3,8 +3,8 @@
 
 ## 1. Introduction
 
-This fifth post of the series started with [link to the first post], will explain in detail parts of our fourth
-solution to a software development problem consisting in:
+This fifth and final post of the series started with [link to the first post], will explain in detail parts of 
+our fourth solution to a software development problem consisting in:
 
 *The implementation of a REST service based on the GitHub REST API v3 that responds to a GET request at port 8080
 and endpoint `/org/{org_name}/contributors` with a list of the contributors and the total number of their contributions
@@ -26,9 +26,9 @@ it may be useful to give a very general explanation of Redis first.
 ## 2. Redis as an optimal tool for implementing our cache.
 
 Redis is an open source in-memory data structure store that can be used as a database, cache, streaming engine and
-message broker. It supports, in an extremely efficient way, the storage / retrieval of data structures such as strings, 
-hashes, lists, sets, sorted sets and streams, all of them accessible via keys. **In our program we will use only lists 
-of strings accessible via string keys**.  
+message broker. It supports, in an extremely efficient way, the storage and retrieval of data structures such as 
+strings, hashes, lists, sets, sorted sets and streams, all of them accessible via keys. **In our program we will 
+use only lists of strings accessible via string keys**.  
 
 To have access to Redis' services we will use Jedis, a Java client for Redis (there are many available, this is
 a very popular one and it is quite easy to use). Jedis can be used directly from Scala without any problem, 
@@ -97,18 +97,17 @@ def contributorsDetailedFutureWithCache(organization: Organization, repos: List[
 Here, we use the `contributorsDetailedFutureWithCache` function to build separately the lists of contributors for
 the repos present in the cache and those not yet saved in it, and return the concatenation of those two lists.
 To start with, the `repos` list is separated in two, using the standard list function `partition`, which applies 
-the `repoUpdatedInCache` predicate to make the separation (this predicate returns `true` iff a repo is present in the 
-cache). Then, the list of contributors for the repos present in the cache is built applying the function 
-`retrieveContributorsFromCache` to each one of those repos, and the list of contributors for the repos missing in 
-the cache (or present in an outdated version, as explained later) is built exactly as in our second solution (to be
-subsequently loaded into the cache, of course).
+the `repoUpdatedInCache` predicate to make the separation (this predicate returns `true` if a repo is present and 
+up to date in the cache). Then, the list of contributors for the repos present in the cache is built applying the 
+function `retrieveContributorsFromCache` to each one of those repos, and the list of contributors for the repos 
+missing in the cache (or present in an outdated version, as explained later) is built exactly as in our second 
+solution (to be subsequently loaded into the cache, of course).
 
 Three auxiliary functions, used by the function just explained, encapsulate the administration of our Redis cache:
 ```scala
 private def saveContributorsToCache(org:Organization, repo: Repository, contributors: List[Contributor]) = {
   val repoK = buildRepoK(org, repo)
   redisClient.del(repoK)
-  logger.info(s"repo '$repoK' stored in cache")
   contributors.foreach { c: Contributor =>
     redisClient.lpush(repoK, contribToString(c))
   }
@@ -118,7 +117,6 @@ private def saveContributorsToCache(org:Organization, repo: Repository, contribu
 private def retrieveContributorsFromCache(org:Organization, repo: Repository) = {
   val repoK = buildRepoK(org, repo)
   val res = redisClient.lrange(repoK, 1, redisClient.llen(repoK).toInt - 1).asScala.toList
-  logger.info(s"repo '$repoK' retrieved from cache, # of contributors=${res.length}")
   res.map(s => stringToContrib(repo, s))
 }
 
@@ -147,7 +145,8 @@ All the access to our embedded Redis server is made through a Redis client start
 all the logic related to the cache, starting with the function `contributorsDetailedFutureWithCache` 
 explained above.
 
-Now, for the cache-administration auxiliary functions (all of them also defined inside the object `RestServerAux`):
+Now, for the cache-administration auxiliary functions (all of them defined inside the object `RestServerAux`
+also containing `contributorsDetailedFutureWithCache`):
 
 - The first function, `saveContributorsToCache`, makes use of the Redis function `lpush` to push inside a list 
   (under the `String` key representing a particular repo) the contributions of each one of the contributors to that 
@@ -159,7 +158,7 @@ Now, for the cache-administration auxiliary functions (all of them also defined 
   the list associated to a particular repo, an indexed range (starting at 1) of its elements (in this case all of 
   them except the last one). The length of the list (also index of its last element) is given by the Redis function 
   `llen`. The Java list returned by `lrange` is converted to a Scala `List[String]` using the `asScala` function,
-  part of the Java-Scala list conversion functions provided by the standard Scala `collection` library.
+  part of the list conversion functions provided by the standard Scala `collection` library.
 
 - Finally, the third function, `repoUpdatedInCache`, is the predicate used to separate the list of repos of an 
   organization into those present and those not present in the cache. It returns `true` if the list  representing 
@@ -251,12 +250,13 @@ data-structure server.
 ## 5. A short evaluation of the alternative solutions to our problem
 
 As we could see analyzing the fourth solution to our problem, the changes needed to provide a cache for 
-a previous solution were confined to a very specific and small section of the code. We had to change only one
-function of our REST server module, adding the lines necessary to tell from repos already and not yet present in 
-the cache and acting in consequence, and develop just three auxiliary functions to manage the Redis-based
-cache. In total around 10 lines of code for the former intervention and 15 for the later. As we hope the reader will
-confirm, the resulting new version is just as clear and easy to understand as the old one. All the necessary services 
-were provided by Java libraries used directly from our Scala program without any harm to the legibility of its code.
+a previous solution were confined to a very specific and small section of the code. We had to modify only 
+one function of our processing module, adding the lines necessary to tell from repos already and not yet 
+present in the cache (and acting in consequence) and write just three new auxiliary functions to manage 
+the Redis-based cache. In total around 10 lines of code for the former intervention and 15 for the later. 
+As we hope the reader will confirm, the resulting new version is just as clear and easy to understand as 
+the old one. All the necessary services were provided by Java libraries used directly from our Scala program 
+without any harm to the legibility of its code.
 
 In this way we have reached the end of the path traced in the first post of this series. We have used Scala and its
 development environment (Java libraries included) as a means to develop a series of solutions to a problem consisting
@@ -286,9 +286,10 @@ advantage, a Redis cache was added to the future-based version, resulting in a v
 the actor-based one in terms of efficiency, but a lot easier to understand because of the simplicity of its Scala 
 code. Besides, strictly speaking, the Akka actors can not be considered a cache, because if the actor system shuts 
 down the state of the actors is lost. Unless, of course, those actors are made persistent ... But that is another 
-story, not only because Akka actor persistence is a tough topic, but also because Akka itself is an almost entirely
-different software development world, which puts in the hands of the Scala developer an enormous variety of tools to solve 
-the problems posed by the development of asynchronous systems, including relatively simple ways of distributing those 
-systems, i.e. scaling them not only up to the capacity of all the cores available in one computer, but scaling them 
-out to the almost unbounded capacity of a fully distributed computer network. 
+story, not only because Akka actor persistence is a separate topic in its own right, but also because Akka itself 
+can be seen as an almost entirely different software development world, which puts in the hands of a Scala 
+programmer an enormous variety of tools specifically oriented to solve the problems posed by all types of
+asynchronous systems, including very efficient ways of distributing them, i.e. scaling them not only up to 
+the capacity of all the cores available in one computer, but scaling them out to the virtually unlimited 
+capacity of a fully distributed computer network.
 
