@@ -284,8 +284,8 @@ in terms of efficiency, but the actor-based version had an order of magnitude be
 called with the same parameters, because the still-alive actors were used as a sort of cache. To compensate for this
 advantage, a Redis cache was added to the future-based version, resulting in a version completely comparable with
 the actor-based one in terms of efficiency, but a lot easier to understand because of the simplicity of its Scala 
-code. Besides, strictly speaking, the Akka actors can not be considered a cache, because if the actor system shuts 
-down the state of the actors is lost. Unless, of course, those actors are made persistent ... But that is another 
+code. Besides, strictly speaking, the Akka actors can not be considered a cache, because if an actor system shuts 
+down, the state of its actors' is lost. Unless, of course, those actors are made persistent ... But that is another 
 story, not only because Akka actor persistence is a separate topic in its own right, but also because Akka itself 
 can be seen as an almost entirely different software development world, which puts in the hands of a Scala 
 programmer an enormous variety of tools specifically oriented to solve the problems posed by all types of
