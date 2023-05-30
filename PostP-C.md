@@ -281,7 +281,7 @@ throughout this series of posts, took four different incarnations:
 The synchronous version, used mainly as a simple introduction to the general structure of our different solutions,
 was, of course, the less efficient one. The version using futures and the version using actors were comparable 
 in terms of efficiency, but the actor-based version had an order of magnitude better response the second time it was
-called with the same parameters, because the still-alive actors were used as a sort of cache. To compensate for this
+called with the same parameters, because the still-alive actors served as a kind of cache. To compensate for this
 advantage, a Redis cache was added to the future-based version, resulting in a version completely comparable with
 the actor-based one in terms of efficiency, but a lot easier to understand because of the simplicity of its Scala 
 code. Besides, strictly speaking, the Akka actors can not be considered a cache, because if an actor system shuts 
